@@ -22,6 +22,6 @@ The idea is as follows:
 
 ## To Improve
 1. As of now, the sync between local and remote happens only when there is a transaction. We can add a service with regular interval (for example hourly) which can do the synchronization in the background.
-2. Due to time constraint, a lot of errors are not handled correctly.
+2. Due to time constraint, a lot of errors are not handled correctly. Also validation of user input is missing.
 3. Refactor. There are a few duplicate codes, variables that could be defined globally and other improvements that can be made to make the code more readable.
 4. The UI is quite basic, the delete button ideally should not appear by default (an idea is to make it available on swipe left/right on an item)
