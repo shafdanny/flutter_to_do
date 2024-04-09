@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_to_do/models/to_do.dart';
 
-class ToDoItem extends StatelessWidget {
+class ToDoItem extends ConsumerWidget {
   ToDoItem({
     required this.toDo,
     required this.onToDoChanged,
@@ -9,8 +10,8 @@ class ToDoItem extends StatelessWidget {
   }) : super(key: ObjectKey(toDo));
 
   final ToDo toDo;
-  final void Function(ToDo toDo) onToDoChanged;
-  final void Function(ToDo toDo) deleteToDo;
+  final void Function(WidgetRef ref, ToDo toDo) onToDoChanged;
+  final void Function(WidgetRef ref, ToDo toDo) deleteToDo;
 
   TextStyle? _getTextStyle(bool checked) {
     if (!checked) return null;
@@ -22,7 +23,7 @@ class ToDoItem extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       onTap: () {},
       leading: Checkbox(
@@ -30,7 +31,7 @@ class ToDoItem extends StatelessWidget {
         activeColor: Colors.red,
         value: toDo.completed,
         onChanged: (value) {
-          onToDoChanged(toDo);
+          onToDoChanged(ref, toDo);
         },
       ),
       title: Row(children: <Widget>[
@@ -45,7 +46,7 @@ class ToDoItem extends StatelessWidget {
           ),
           alignment: Alignment.centerRight,
           onPressed: () {
-            deleteToDo(toDo);
+            deleteToDo(ref, toDo);
           },
         ),
       ]),

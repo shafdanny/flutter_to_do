@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_to_do/models/to_do.dart';
+import 'package:flutter_to_do/provider.dart';
 import 'package:flutter_to_do/to_do_item.dart';
+import 'package:uuid/uuid.dart';
 
 void main() {
-  runApp(const ToDoApp());
+  runApp(
+    const ProviderScope(
+      child: ToDoApp(),
+    ),
+  );
 }
 
 class ToDoApp extends StatelessWidget {
   const ToDoApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,44 +24,34 @@ class ToDoApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const ToDoListPage(title: 'To Do List'),
+      home: ToDoListPage(),
     );
   }
 }
 
-class ToDoListPage extends StatefulWidget {
-  const ToDoListPage({super.key, required this.title});
+class ToDoListPage extends ConsumerWidget {
+  ToDoListPage({super.key});
 
-  final String title;
-
-  @override
-  State<ToDoListPage> createState() => _ToDoListPageState();
-}
-
-class _ToDoListPageState extends State<ToDoListPage> {
-  final List<ToDo> _toDoList = <ToDo>[];
   final TextEditingController _textFieldController = TextEditingController();
 
-  void _addToDoItem(String name) {
-    setState(() {
-      _toDoList.add(ToDo(name: name, completed: false));
-    });
+  void _addToDoItem(WidgetRef ref, String name) {
+    ref.read(toDoListProvider.notifier).addTodo(ToDo(
+          id: const Uuid().v1(),
+          name: name,
+          completed: false,
+        ));
     _textFieldController.clear();
   }
 
-  void _handleTodoChange(ToDo toDo) {
-    setState(() {
-      toDo.completed = !toDo.completed;
-    });
+  void _handleTodoChange(WidgetRef ref, ToDo toDo) {
+    ref.read(toDoListProvider.notifier).changeCompletedToDo(toDo);
   }
 
-  void _deleteTodo(ToDo toDo) {
-    setState(() {
-      _toDoList.removeWhere((element) => element.name == toDo.name);
-    });
+  void _deleteTodo(WidgetRef ref, ToDo toDo) {
+    ref.read(toDoListProvider.notifier).deleteToDo(toDo);
   }
 
-  Future<void> _displayDialog() async {
+  Future<void> _displayDialog(BuildContext context, WidgetRef ref) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -86,7 +82,7 @@ class _ToDoListPageState extends State<ToDoListPage> {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
-                _addToDoItem(_textFieldController.text);
+                _addToDoItem(ref, _textFieldController.text);
               },
               child: const Text('Add'),
             ),
@@ -97,24 +93,30 @@ class _ToDoListPageState extends State<ToDoListPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<ToDo>> toDoList = ref.watch(toDoListProvider);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: const Text('To Do List'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        children: _toDoList.map((ToDo toDo) {
-          return ToDoItem(
-            toDo: toDo,
-            onToDoChanged: _handleTodoChange,
-            deleteToDo: _deleteTodo,
-          );
-        }).toList(),
-      ),
+      body: switch (toDoList) {
+        AsyncData(:final value) => ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            children: value.map((ToDo toDo) {
+              return ToDoItem(
+                toDo: toDo,
+                onToDoChanged: _handleTodoChange,
+                deleteToDo: _deleteTodo,
+              );
+            }).toList(),
+          ),
+        AsyncError() => const Text('Oops, something unexpected happened'),
+        _ => const CircularProgressIndicator(),
+      },
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _displayDialog(),
+        onPressed: () => _displayDialog(context, ref),
         tooltip: 'Add a Todo',
         child: const Icon(Icons.add),
       ),
