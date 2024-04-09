@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_to_do/models/to_do.dart';
 import 'package:flutter_to_do/provider.dart';
 import 'package:flutter_to_do/to_do_item.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-void main() {
+Future<void> main() async {
+  await Hive.initFlutter();
+  await Hive.openBox('localBox');
+
   runApp(
     const ProviderScope(
       child: ToDoApp(),
