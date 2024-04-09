@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_to_do/models/to_do.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 // Necessary for code-generation to work
 part 'provider.g.dart';
@@ -15,10 +17,11 @@ class ToDoList extends _$ToDoList {
     List<ToDo> toDoList = [];
 
     for (var e in box.values) {
-      debugPrint(e.toString());
       toDoList
           .add(ToDo(id: e['id'], name: e['name'], completed: e['completed']));
     }
+
+    syncToFirebase();
 
     return toDoList;
   }
@@ -32,6 +35,8 @@ class ToDoList extends _$ToDoList {
 
     box.put(todo.id,
         {'id': todo.id, 'name': todo.name, 'completed': todo.completed});
+
+    syncToFirebase();
   }
 
   Future<void> deleteToDo(ToDo todo) async {
@@ -42,6 +47,8 @@ class ToDoList extends _$ToDoList {
     var box = Hive.box('localBox');
 
     box.delete(todo.id);
+
+    syncToFirebase();
   }
 
   Future<void> changeCompletedToDo(ToDo todo) async {
@@ -65,5 +72,50 @@ class ToDoList extends _$ToDoList {
     }
 
     ref.notifyListeners();
+
+    syncToFirebase();
+  }
+
+  Future<void> updateToDoList(List<ToDo> toDoList) async {
+    final previousState = await future;
+
+    previousState.clear();
+    previousState.addAll(toDoList);
+
+    var box = Hive.box('localBox');
+    box.clear();
+
+    for (var todo in toDoList) {
+      box.put(todo.id,
+          {'id': todo.id, 'name': todo.name, 'completed': todo.completed});
+    }
+
+    ref.notifyListeners();
+
+    syncToFirebase();
+  }
+
+  Future<void> syncToFirebase() async {
+    var box = Hive.box('localBox');
+    List<ToDo> toDoList = [];
+
+    for (var e in box.values) {
+      toDoList
+          .add(ToDo(id: e['id'], name: e['name'], completed: e['completed']));
+    }
+
+    final List<ConnectivityResult> connectivityResult =
+        await (Connectivity().checkConnectivity());
+
+    if (connectivityResult.contains(ConnectivityResult.mobile) ||
+        connectivityResult.contains(ConnectivityResult.wifi)) {
+      final dio = Dio();
+      var json = jsonEncode(toDoList, toEncodable: (e) => (e as ToDo).toJson());
+
+      final response = await dio.put(
+        'https://flutter-to-do-a1deb-default-rtdb.asia-southeast1.firebasedatabase.app/toDos.json',
+        data: json,
+      );
+    }
   }
 }

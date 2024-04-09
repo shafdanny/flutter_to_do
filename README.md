@@ -4,13 +4,22 @@ A new Flutter project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Open the project in IDE of your choice, and run it on a Simulator/Emulator per the Flutter documentation.
 
-A few resources to get you started if this is your first Flutter project:
+## Explanation
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+We use the following library:
+1. Riverpod - state management
+2. Hive - local key-value database
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The idea is as follows:
+1. Every CRUD transaction will be done using Hive (hence stored locally)
+2. If it is possible (connection is available), we will push all the data from Hive to Firebase
+
+Caveat:
+1. The local database is the final source of truth. Since we did not differentiate the sessions with users, if another new device is running the application with empty data, it will overwrite the existing data in Firebase, thus making it empty also.
+2. To check on the content of Firebase, we can simply do a GET query to the URL defined inside provider.dart (in production app, this URL should not be publicly available).
+
+To Improve:
+1. As of now, the sync between local and remote happens only when there is a transaction. We can add a service with regular interval (for example hourly) which can do the synchronization in the background.
+2. Due to time constraint, a lot of errors are not handled correctly.
